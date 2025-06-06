@@ -1,92 +1,89 @@
+#!/usr/bin/python
+
+from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import Node, RemoteController
+from mininet.node import Node, OVSSwitch
 from mininet.link import TCLink
+from mininet.util import dumpNodeConnections, irange
+from mininet.log import setLogLevel
 from mininet.cli import CLI
-from mininet.log import setLogLevel, info
 
-class LinuxRouter(Node):
-    "A Node with IP forwarding enabled."
+class Router(Node):
+    def config( self, **params ):
+        super(Router, self).config(**params)
 
-    def config(self, **params):
-        super(LinuxRouter, self).config(**params)
-        self.cmd('sysctl -w net.ipv4.ip_forward=1')
+        r = self.name
+        print("Configure " + r + "\n")
+        # Enable forwarding on the router
+        self.cmd( 'sysctl net.ipv4.ip_forward=1' )
+        # Enable loose reverse path filtering
+        self.cmd( 'sysctl net.ipv4.conf.all.rp_filter=2' )
 
-    def terminate(self):
-        self.cmd('sysctl -w net.ipv4.ip_forward=0')
-        super(LinuxRouter, self).terminate()
+        zebra = "/usr/lib/frr/zebra"
+        ripd = "/usr/lib/frr/ripd"
 
-def run():
-    net = Mininet(controller=None, link=TCLink)
+        # # do some mounts bind to make the daemons working
+        r = self.name
+        self.cmd( "mkdir /tmp/{} && chown frr /tmp/{}".format(r, r) )
+        self.cmd( "mount --bind /tmp/{} /var/run/frr".format(r) )
+        self.cmd( "mount --bind {} /etc/frr".format(r) )
 
-    info("*** Creating routers\n")
-    r1 = net.addHost('r1', cls=LinuxRouter, ip='10.1.1.1/24')
-    r2 = net.addHost('r2', cls=LinuxRouter, ip='10.1.2.1/24')
-    r3 = net.addHost('r3', cls=LinuxRouter, ip='10.1.3.1/24')
+        # Run the daemons
+        self.cmd( "{} -f {}/zebra.conf -d > /tmp/{}/zebra.log 2>&1".format(zebra, r, r) )
+        self.waitOutput()
 
-    info("*** Creating hosts\n")
-    h1 = net.addHost('h1', ip='10.1.1.100/24', defaultRoute='via 10.1.1.1')
-    h2 = net.addHost('h2', ip='10.1.2.100/24', defaultRoute='via 10.1.2.1')
-    h3 = net.addHost('h3', ip='10.1.3.100/24', defaultRoute='via 10.1.3.1')
+        self.cmd( "{} -f {}/ripd.conf -d > /tmp/{}/ripd.log 2>&1".format(ripd, r, r) )
+        self.waitOutput()
 
-    info("*** Creating links\n")
-    net.addLink(h1, r1)
-    net.addLink(h2, r2)
-    net.addLink(h3, r3)
+    def terminate( self ): 
+        r = self.name
+        self.cmd( 'sysctl net.ipv4.ip_forward=0' )
+        self.cmd( 'sysctl net.ipv4.conf.all.rp_filter=0' )
 
-    net.addLink(r1, r2)
-    net.addLink(r2, r3)
-    net.addLink(r3, r1)
+        self.cmd( "killall bgpd staticd zebra" )
+        self.cmd( "umount /var/run/frr" )
+        self.cmd( "umount /etc/frr" )
+        self.cmd( "rm -fr /tmp/{}".format(r) )
+        super(Router, self).terminate()
 
-    info("*** Starting network\n")
-    net.start()
 
-    info("*** Configuring interfaces\n")
-    # Manually assign IPs for router-to-router links
-    r1.cmd("ifconfig r1-eth1 10.1.12.1/30")
-    r2.cmd("ifconfig r2-eth1 10.1.12.2/30")
+class LegacySwitch(OVSSwitch):
+    "A Legacy Switch without OpenFlow"
+    def __init__(self, name, **params):
+        OVSSwitch.__init__(self, name, failMode='standalone', **params)
+        self.switchIP = None
 
-    r2.cmd("ifconfig r2-eth2 10.1.23.1/30")
-    r3.cmd("ifconfig r3-eth1 10.1.23.2/30")
+class MyTopo( Topo ):
+    
+    def build(self):
+        # Setup Routers
+        r1 = self.addNode('r1', cls = Router)
+        r2 = self.addNode('r2', cls = Router)
 
-    r3.cmd("ifconfig r3-eth2 10.1.31.1/30")
-    r1.cmd("ifconfig r1-eth2 10.1.31.2/30")
+        # Setup Switches
+        s1 = self.addSwitch('s1', cls=LegacySwitch)
+        self.addLink(s1, r1, interfName2 = 'r1-eth0', params2 = {'ip': '10.0.1.1/24'})
 
-    info("*** Starting FRRouting (BGP) on each router\n")
-    for router, asn, neighbors in [
-        ('r1', 65001, [('10.1.12.2', 65002), ('10.1.31.1', 65003)]),
-        ('r2', 65002, [('10.1.12.1', 65001), ('10.1.23.2', 65003)]),
-        ('r3', 65003, [('10.1.23.1', 65002), ('10.1.31.2', 65001)]),
-    ]:
-        node = net.get(router)
-        zebra_conf = f"""/tmp/{router}_zebra.conf"""
-        bgpd_conf = f"""/tmp/{router}_bgpd.conf"""
+        # s2 = self.addSwitch('s2', cls=LegacySwitch)
+        # self.addLink(s2, r1, params1={'ip': '10.0.2.2/24'}, params2={'ip': '10.0.2.1/24'})
+        # self.addLink(s2, r2, params1={'ip': '10.0.2.3/24'}, params2={'ip': '10.0.2.4/24'})
         
-        with open(zebra_conf, 'w') as f:
-            f.write(f"""
-hostname {router}
-log file /tmp/{router}-zebra.log
-""")
-        with open(bgpd_conf, 'w') as f:
-            f.write(f"""
-hostname {router}
-router bgp {asn}
-  bgp router-id 1.1.1.{asn - 65000}
-""")
-            for nbr_ip, nbr_asn in neighbors:
-                f.write(f"  neighbor {nbr_ip} remote-as {nbr_asn}\n")
-            f.write("  network 10.1.1.0/24\n" if router == 'r1' else "")
-            f.write("  network 10.1.2.0/24\n" if router == 'r2' else "")
-            f.write("  network 10.1.3.0/24\n" if router == 'r3' else "")
+        # s3 = self.addSwitch('s3', cls=LegacySwitch)
+        # self.addLink(s3, r2, params1={'ip': '10.0.3.2/24'}, params2={'ip': '10.0.3.1/24'})
 
-        node.cmd(f"/usr/lib/frr/zebra -f {zebra_conf} -d -z /tmp/{router}_zebra.api -i /tmp/{router}_zebra.pid")
-        node.cmd(f"/usr/lib/frr/bgpd -f {bgpd_conf} -d -z /tmp/{router}_zebra.api -i /tmp/{router}_bgpd.pid")
+def perfTest():
+    "Create network and run simple performance test"
+    topo = MyTopo()
+    net = Mininet(topo=topo, link=TCLink, cleanup=True)
+    net.start()
+    # print( "Dumping host connections" )
+    # dumpNodeConnections( net.hosts )
+    # print( "Testing network connectivity" )
+    # net.pingAll()
 
-    info("*** Running CLI\n")
     CLI(net)
-
-    info("*** Stopping network\n")
     net.stop()
 
 if __name__ == '__main__':
-    setLogLevel('info')
-    run()
+    setLogLevel( 'info' )
+    perfTest()
