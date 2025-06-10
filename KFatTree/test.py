@@ -2,88 +2,71 @@
 
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import Node, OVSSwitch
+from mininet.node import Node, Switch, OVSSwitch
 from mininet.link import TCLink
 from mininet.util import dumpNodeConnections, irange
 from mininet.log import setLogLevel
 from mininet.cli import CLI
+import os
+from time import sleep, time
+import termcolor as T
 
-class Router(Node):
-    def config( self, **params ):
-        super(Router, self).config(**params)
 
+def log(s, col="green"):
+    # Up to python3
+    # print T.colored(s, col)
+    print(T.colored(s,col))
+
+
+class Router(Switch):
+    ID = 0
+    def __init__(self, name, **kwargs):
+        kwargs['inNamespace'] = True
+        Switch.__init__(self, name, **kwargs)
+        Router.ID += 1
+        self.switch_id = Router.ID
+
+    def start(self, controllers):
         r = self.name
-        print("Configure " + r + "\n")
-        # Enable forwarding on the router
-        self.cmd( 'sysctl net.ipv4.ip_forward=1' )
-        # Enable loose reverse path filtering
-        self.cmd( 'sysctl net.ipv4.conf.all.rp_filter=2' )
-
-        zebra = "/usr/lib/frr/zebra"
-        ripd = "/usr/lib/frr/ripd"
-
-        # # do some mounts bind to make the daemons working
-        r = self.name
-        self.cmd( "mkdir /tmp/{} && chown frr /tmp/{}".format(r, r) )
-        self.cmd( "mount --bind /tmp/{} /var/run/frr".format(r) )
-        self.cmd( "mount --bind {} /etc/frr".format(r) )
-
-        # Run the daemons
-        self.cmd( "{} -f {}/zebra.conf -d > /tmp/{}/zebra.log 2>&1".format(zebra, r, r) )
+        log('Setting up %s...' % r)
+        self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
+        self.waitOutput()
+        self.cmd("/usr/lib/frr/zebra -f test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > logs/%s_zebra-stdout 2>&1" % (r, r, r))
+        self.waitOutput()
+        self.cmd("/usr/lib/frr/bgpd -f test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > logs/%s_bgpd-stdout 2>&1" % (r, r, r), shell=True)
+        # manually start the interface 'lo'
+        self.cmd("ifconfig lo up")
         self.waitOutput()
 
-        self.cmd( "{} -f {}/ripd.conf -d > /tmp/{}/ripd.log 2>&1".format(ripd, r, r) )
-        self.waitOutput()
+    def stop(self):
+        self.deleteIntfs()
 
-    def terminate( self ): 
-        r = self.name
-        self.cmd( 'sysctl net.ipv4.ip_forward=0' )
-        self.cmd( 'sysctl net.ipv4.conf.all.rp_filter=0' )
-
-        self.cmd( "killall bgpd staticd zebra" )
-        self.cmd( "umount /var/run/frr" )
-        self.cmd( "umount /etc/frr" )
-        self.cmd( "rm -fr /tmp/{}".format(r) )
-        super(Router, self).terminate()
-
-
-class LegacySwitch(OVSSwitch):
-    "A Legacy Switch without OpenFlow"
-    def __init__(self, name, **params):
-        OVSSwitch.__init__(self, name, failMode='standalone', **params)
-        self.switchIP = None
 
 class MyTopo( Topo ):
-    
     def build(self):
-        # Setup Routers
-        r1 = self.addNode('r1', cls = Router)
-        r2 = self.addNode('r2', cls = Router)
+        h1 = self.addHost('h1', ip = "10.0.1.1/24", defaultRoute = "via 10.0.1.254")
+        h2 = self.addHost('h2', ip = "10.0.2.1/24", defaultRoute = "via 10.0.2.254")
 
-        # Setup Switches
-        s1 = self.addSwitch('s1', cls=LegacySwitch)
-        self.addLink(s1, r1, interfName2 = 'r1-eth0', params2 = {'ip': '10.0.1.1/24'})
+        r1 = self.addSwitch('r1')
+        r2 = self.addSwitch('r2')
 
-        # s2 = self.addSwitch('s2', cls=LegacySwitch)
-        # self.addLink(s2, r1, params1={'ip': '10.0.2.2/24'}, params2={'ip': '10.0.2.1/24'})
-        # self.addLink(s2, r2, params1={'ip': '10.0.2.3/24'}, params2={'ip': '10.0.2.4/24'})
-        
-        # s3 = self.addSwitch('s3', cls=LegacySwitch)
-        # self.addLink(s3, r2, params1={'ip': '10.0.3.2/24'}, params2={'ip': '10.0.3.1/24'})
+        self.addLink(h1, r1)
+        self.addLink(h2, r2)
+        self.addLink(r1, r2)
 
-def perfTest():
-    "Create network and run simple performance test"
-    topo = MyTopo()
-    net = Mininet(topo=topo, link=TCLink, cleanup=True)
+
+def main():
+    os.system("rm -f /tmp/r*.log /tmp/r*.pid logs/*")
+    os.system("mn -c >/dev/null 2>&1")
+    os.system("killall -9 zebra bgpd > /dev/null 2>&1")
+    os.system('pgrep -f webserver.py | xargs kill -9')
+    net = Mininet(topo=MyTopo(), switch=Router, cleanup=True)
     net.start()
-    # print( "Dumping host connections" )
-    # dumpNodeConnections( net.hosts )
-    # print( "Testing network connectivity" )
-    # net.pingAll()
-
     CLI(net)
     net.stop()
+    os.system("killall -9 zebra bgpd")
+    os.system('pgrep -f webserver.py | xargs kill -9')
 
-if __name__ == '__main__':
-    setLogLevel( 'info' )
-    perfTest()
+
+if __name__ == "__main__":
+    main()
