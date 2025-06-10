@@ -6,9 +6,9 @@ from mininet.cli import CLI
 class MyTopo(Topo):
     def build(self):
         # Add switches with STP enabled
-        s1 = self.addSwitch('s1', cls=OVSSwitch, stp=True)
-        s2 = self.addSwitch('s2', cls=OVSSwitch, stp=True)
-        s3 = self.addSwitch('s3', cls=OVSSwitch, stp=True)
+        s1 = self.addSwitch('s1', failMode='standalone', stp=True)
+        s2 = self.addSwitch('s2', failMode='standalone', stp=True)
+        s3 = self.addSwitch('s3', failMode='standalone', stp=True)
         
         # Add hosts and links as usual
         h1 = self.addHost('h1')
@@ -22,7 +22,7 @@ class MyTopo(Topo):
 
 # Start the network
 topo = MyTopo()
-net = Mininet(topo=topo, switch=OVSSwitch, controller=None, cleanup=True)
+net = Mininet(topo=topo, switch=OVSSwitch, controller=None, autoSetMacs=True, cleanup=True)
 net.start()
 CLI(net)
 net.stop()

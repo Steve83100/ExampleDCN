@@ -7,111 +7,118 @@ from mininet.log import setLogLevel, info
 
 class FatTree4(Topo):
     def build(self):
-        host1_1 = self.addHost('h1_1')
-        host1_2 = self.addHost('h1_2')
-        host1_3 = self.addHost('h1_3')
-        host1_4 = self.addHost('h1_4')
+        host11 = self.addHost('h11')
+        host12 = self.addHost('h12')
+        host13 = self.addHost('h13')
+        host14 = self.addHost('h14')
+
+        host21 = self.addHost('h21')
+        host22 = self.addHost('h22')
+        host23 = self.addHost('h23')
+        host24 = self.addHost('h24')
         
-        edge1_1 = self.addSwitch('e1_1')
-        edge1_2 = self.addSwitch('e1_2')
+        host31 = self.addHost('h31')
+        host32 = self.addHost('h32')
+        host33 = self.addHost('h33')
+        host34 = self.addHost('h34')
         
-        aggr1_1 = self.addSwitch('a1_1')
-        aggr1_2 = self.addSwitch('a1_2') # 删除其中一个 aggr switch
+        host41 = self.addHost('h41')
+        host42 = self.addHost('h42')
+        host43 = self.addHost('h43')
+        host44 = self.addHost('h44')
         
-        self.addLink(host1_1, edge1_1)
-        self.addLink(host1_2, edge1_1)
-        self.addLink(host1_3, edge1_2)
-        self.addLink(host1_4, edge1_2)
-        self.addLink(aggr1_1, edge1_1)
-        self.addLink(aggr1_1, edge1_2)
-        self.addLink(aggr1_2, edge1_1) # 删除通向其中一个 aggr switch 的 link
-        self.addLink(aggr1_2, edge1_2) # 删除通向其中一个 aggr switch 的 link
+
+        edge11 = self.addSwitch('e11', failMode='standalone', stp=True)
+        edge12 = self.addSwitch('e12', failMode='standalone', stp=True)
         
+        edge21 = self.addSwitch('e21', failMode='standalone', stp=True)
+        edge22 = self.addSwitch('e22', failMode='standalone', stp=True)
         
+        edge31 = self.addSwitch('e31', failMode='standalone', stp=True)
+        edge32 = self.addSwitch('e32', failMode='standalone', stp=True)
         
-        # host2_1 = self.addHost('h2_1')
-        # host2_2 = self.addHost('h2_2')
-        # host2_3 = self.addHost('h2_3')
-        # host2_4 = self.addHost('h2_4')
+        edge41 = self.addSwitch('e41', failMode='standalone', stp=True)
+        edge42 = self.addSwitch('e42', failMode='standalone', stp=True)
+
+
+        aggr11 = self.addSwitch('a11', failMode='standalone', stp=True)
+        aggr12 = self.addSwitch('a12', failMode='standalone', stp=True)
         
-        # host3_1 = self.addHost('h3_1')
-        # host3_2 = self.addHost('h3_2')
-        # host3_3 = self.addHost('h3_3')
-        # host3_4 = self.addHost('h3_4')
+        aggr21 = self.addSwitch('a21', failMode='standalone', stp=True)
+        aggr22 = self.addSwitch('a22', failMode='standalone', stp=True)
         
-        # host4_1 = self.addHost('h4_1')
-        # host4_2 = self.addHost('h4_2')
-        # host4_3 = self.addHost('h4_3')
-        # host4_4 = self.addHost('h4_4')
+        aggr31 = self.addSwitch('a31', failMode='standalone', stp=True)
+        aggr32 = self.addSwitch('a32', failMode='standalone', stp=True)
         
+        aggr41 = self.addSwitch('a41', failMode='standalone', stp=True)
+        aggr42 = self.addSwitch('a42', failMode='standalone', stp=True)
         
-        
-        # edge2_1 = self.addSwitch('e2_1')
-        # edge2_2 = self.addSwitch('e2_2')
-        
-        # edge3_1 = self.addSwitch('e3_1')
-        # edge3_2 = self.addSwitch('e3_2')
-        
-        # edge4_1 = self.addSwitch('e4_1')
-        # edge4_2 = self.addSwitch('e4_2')
-        
-        
-        
-        # aggr2_1 = self.addSwitch('a2_1')
-        # aggr2_2 = self.addSwitch('a2_2')
-        
-        # aggr3_1 = self.addSwitch('a3_1')
-        # aggr3_2 = self.addSwitch('a3_2')
-        
-        # aggr4_1 = self.addSwitch('a4_1')
-        # aggr4_2 = self.addSwitch('a4_2')
-        
-        # core1 = self.addSwitch('c1')
-        # core2 = self.addSwitch('c2')
-        # core3 = self.addSwitch('c3')
-        # core4 = self.addSwitch('c4')
+
+        core1 = self.addSwitch('c1', failMode='standalone', stp=True)
+        core2 = self.addSwitch('c2', failMode='standalone', stp=True)
+        core3 = self.addSwitch('c3', failMode='standalone', stp=True)
+        core4 = self.addSwitch('c4', failMode='standalone', stp=True)
         
         
+        self.addLink(host11, edge11)
+        self.addLink(host12, edge11)
+        self.addLink(host13, edge12)
+        self.addLink(host14, edge12)
+        self.addLink(aggr11, edge11)
+        self.addLink(aggr11, edge12)
+        self.addLink(aggr12, edge11)
+        self.addLink(aggr12, edge12)
         
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
+        self.addLink(host21, edge21)
+        self.addLink(host22, edge21)
+        self.addLink(host23, edge22)
+        self.addLink(host24, edge22)
+        self.addLink(aggr21, edge21)
+        self.addLink(aggr21, edge22)
+        self.addLink(aggr22, edge21)
+        self.addLink(aggr22, edge22)
+
+        self.addLink(host31, edge31)
+        self.addLink(host32, edge31)
+        self.addLink(host33, edge32)
+        self.addLink(host34, edge32)
+        self.addLink(aggr31, edge31)
+        self.addLink(aggr31, edge32)
+        self.addLink(aggr32, edge31)
+        self.addLink(aggr32, edge32)
         
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
+        self.addLink(host41, edge41)
+        self.addLink(host42, edge41)
+        self.addLink(host43, edge42)
+        self.addLink(host44, edge42)
+        self.addLink(aggr41, edge41)
+        self.addLink(aggr41, edge42)
+        self.addLink(aggr42, edge41)
+        self.addLink(aggr42, edge42)
         
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
+        self.addLink(aggr11, core1)
+        self.addLink(aggr21, core1)
+        self.addLink(aggr31, core1)
+        self.addLink(aggr41, core1)
+
+        self.addLink(aggr11, core2)
+        self.addLink(aggr21, core2)
+        self.addLink(aggr31, core2)
+        self.addLink(aggr41, core2)
         
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
+        self.addLink(aggr12, core3)
+        self.addLink(aggr22, core3)
+        self.addLink(aggr32, core3)
+        self.addLink(aggr42, core3)
         
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        # self.addLink(host1_1, edge1_1)
-        
+        self.addLink(aggr12, core4)
+        self.addLink(aggr22, core4)
+        self.addLink(aggr32, core4)
+        self.addLink(aggr42, core4)
 
 
 topo = FatTree4()
-net = Mininet(topo=topo, switch=OVSSwitch, controller=None)
+net = Mininet(topo=topo, switch=OVSSwitch, controller=None, autoSetMacs=True, cleanup=True)
 net.start()
 CLI(net)
 net.stop()
