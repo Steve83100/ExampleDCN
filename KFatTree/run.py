@@ -1,13 +1,10 @@
-import time
-import os
-import sys
-
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Node, Switch
-from mininet.log import setLogLevel, info
+from mininet.log import setLogLevel
 from mininet.cli import CLI
-from mininet.util import irange, natural, naturalSeq
+from mininet.util import irange
+import os
 
 
 class FatTreeRouter(Switch):

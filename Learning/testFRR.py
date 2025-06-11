@@ -2,13 +2,10 @@
 
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import Node, Switch, OVSSwitch
-from mininet.link import TCLink
-from mininet.util import dumpNodeConnections, irange
+from mininet.node import Switch
 from mininet.log import setLogLevel
 from mininet.cli import CLI
 import os
-from time import sleep, time
 import termcolor as T
 
 
@@ -31,9 +28,9 @@ class Router(Switch):
         log('Setting up %s...' % r)
         self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
         self.waitOutput()
-        self.cmd("/usr/lib/frr/zebra -f test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > logs/%s_zebra-stdout 2>&1" % (r, r, r))
+        self.cmd("/usr/lib/frr/zebra -f test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > test_log/%s_zebra-stdout 2>&1" % (r, r, r))
         self.waitOutput()
-        self.cmd("/usr/lib/frr/bgpd -f test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > logs/%s_bgpd-stdout 2>&1" % (r, r, r), shell=True)
+        self.cmd("/usr/lib/frr/bgpd -f test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > test_log/%s_bgpd-stdout 2>&1" % (r, r, r), shell=True)
         # manually start the interface 'lo'
         self.cmd("ifconfig lo up")
         self.waitOutput()
@@ -60,7 +57,7 @@ def main():
     os.system("mn -c >/dev/null 2>&1")
     os.system("killall -9 zebra bgpd > /dev/null 2>&1")
     os.system('pgrep -f webserver.py | xargs kill -9')
-    net = Mininet(topo=MyTopo(), switch=Router, cleanup=True)
+    net = Mininet(topo=MyTopo(), switch=Router, cleanup=True, controller=None)
     net.start()
     CLI(net)
     net.stop()
