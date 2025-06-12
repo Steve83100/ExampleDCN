@@ -8,9 +8,7 @@ import os
 
 
 class FatTreeRouter(Switch):
-
     def __init__(self, name, ip, asn, connections, **params):
-
         super(FatTreeRouter, self).__init__(**params)
         os.makedirs("./"+name, exist_ok=True)
 

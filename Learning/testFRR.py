@@ -6,6 +6,7 @@ from mininet.node import Switch
 from mininet.log import setLogLevel
 from mininet.cli import CLI
 import os
+from time import sleep
 import termcolor as T
 
 
@@ -28,10 +29,11 @@ class Router(Switch):
         log('Setting up %s...' % r)
         self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
         self.waitOutput()
-        self.cmd("/usr/lib/frr/zebra -f test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > test_log/%s_zebra-stdout 2>&1" % (r, r, r))
+        sleep(0.5)
+        self.cmd("/usr/lib/frr/zebra -f ./test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > ./test_log/%s_zebra-stdout 2>&1" % (r, r, r), shell=True)
         self.waitOutput()
-        self.cmd("/usr/lib/frr/bgpd -f test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > test_log/%s_bgpd-stdout 2>&1" % (r, r, r), shell=True)
-        # manually start the interface 'lo'
+        self.cmd("/usr/lib/frr/bgpd -f ./test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > ./test_log/%s_bgpd-stdout 2>&1" % (r, r, r), shell=True)
+        self.waitOutput()
         self.cmd("ifconfig lo up")
         self.waitOutput()
 
@@ -56,13 +58,11 @@ def main():
     os.system("rm -f /tmp/r*.log /tmp/r*.pid logs/*")
     os.system("mn -c >/dev/null 2>&1")
     os.system("killall -9 zebra bgpd > /dev/null 2>&1")
-    os.system('pgrep -f webserver.py | xargs kill -9')
     net = Mininet(topo=MyTopo(), switch=Router, cleanup=True, controller=None)
     net.start()
     CLI(net)
     net.stop()
     os.system("killall -9 zebra bgpd")
-    os.system('pgrep -f webserver.py | xargs kill -9')
 
 
 if __name__ == "__main__":
