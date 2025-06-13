@@ -1,134 +1,96 @@
-from mininet.topo import Topo
+# Construct k=4 FatTree topology, start network, and run FRR daemons on routers.
+
 from mininet.net import Mininet
-from mininet.node import Node, Switch
-from mininet.log import setLogLevel
+from mininet.topo import Topo
 from mininet.cli import CLI
-from mininet.util import irange
+from mininet.node import Switch
 import os
+from time import sleep
+import termcolor as T
 
 
-class FatTreeRouter(Switch):
-    def __init__(self, name, ip, asn, connections, **params):
-        super(FatTreeRouter, self).__init__(**params)
-        os.makedirs("./"+name, exist_ok=True)
 
-        zebra_config = f"""hostname {name}
-interface lo
- ip address {ip}
- no shutdown
-!
-line vty
-!
-"""
-        # Since our FatTree exists in 10.0.0.0/8, we can leave out interface configs other than loopback,
-        # and Mininet will establish a "eth0" interface with ip 10.0.0.0/8 for us, which is totally enough for use.
-        
-        bgp_config = f"""hostname {name}
-router bgp {asn}
- bgp router-id {ip}
-"""
-        if name.startswith("Edge"): # Advertise our hosts in LAN
-            bgp_config += f" network {ip[:-3]}/24\n"
-
-        # else: # If no hosts connected, just advertise itself
-        #     bpg_config += f" network {ip}\n"
-
-        for (ip, asn) in connections:
-            bgp_config += f" neighbor {ip} remote-as {asn}\n"
-        
-        # bgp_config += "\n address-family ipv4 unicast\n"
-        
-        # # Activate neighbors
-        # for neighbor in bgp_data.get('neighbors', []):
-        #     bgp_config += f"  neighbor {neighbor['ip']} activate\n"
-        
-        # bgp_config += " exit-address-family\n!\n\n"
-
-        bgp_config += """
-line vty
-!
-"""
-
-        f = open("./" + name + "/zebra.conf", 'w')
-        f.write(zebra_config)
-        f.close()
-        
-        f = open("./" + name + "/bgpd.conf", 'w')
-        f.write(bgp_config)
-        f.close()
-
-    def config():
-        pass
-    
-    def terminate():
-        pass
+def log(s, col="green"):
+    # Up to python3
+    # print T.colored(s, col)
+    print(T.colored(s,col))
 
 
-def buildFatTree(k):
-    """Build an arbitrary sized FatTree. Loads bgp daemons onto routers. Maximum k = 254."""
 
-    net = Mininet()
+class Router(Switch):
+    ID = 0
+    def __init__(self, name, **kwargs):
+        kwargs['inNamespace'] = True
+        Switch.__init__(self, name, **kwargs)
+        Router.ID += 1
+        self.switch_id = Router.ID
 
-    core_routers = {} # Stores all core routers
-    for i in irange(1, k/2): # Set id
-        for j in irange(1, k/2): # Core router id inside each Set
-            ip = f"10.0.{i}.{j}/32"
-            asn = "64512"
-            name = f"Core{i}_{j}"
-            connections = [( f"10.{n}.0.{i}/32", f"{64600+n}") for n in irange(1, k)]
-            # Each Core router within set "set_id" connects to the Aggr routers across all pods with the router_id "set_id"
-            # router_connections stores (ip, asn) of the routers connected to this router
-            core_router = net.addSwitch(name, cls = FatTreeRouter, ip = ip, asn = asn, connections = connections)
-            core_routers[i*k/2 + j] = core_router
+    def start(self, controllers):
+        r = self.name
+        log('Setting up %s...' % r)
+        # self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
+        # self.waitOutput()
+        # sleep(0.1)
+        # self.cmd("/usr/lib/frr/zebra -f ./test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > ./test_log/%s_zebra-stdout.log 2>&1" % (r, r, r), shell=True)
+        # self.waitOutput()
+        # self.cmd("/usr/lib/frr/bgpd -f ./test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > ./test_log/%s_bgpd-stdout.log 2>&1" % (r, r, r), shell=True)
+        # self.waitOutput()
+        # self.cmd("ifconfig lo up")
+        # self.waitOutput()
 
-    for i in irange(1, k): # Pod id
-        pod_aggr_routers = {} # Stores all aggr routers in this pod
-        for j in irange(1, k/2): # Create Aggr routers in this pod
+    def stop(self):
+        self.deleteIntfs()
 
-            # Create Aggr routers
-            ip = f"10.{i}.0.{j}/32"
-            asn = f"{64600 + i}"
-            name = f"Aggr{i}_{j}"
-            connections_to_core = [(f"10.0.{j}.{n}/32", "64512") for n in irange(1, k/2)]
-            # Each Aggr router with "router_id" connects to all Core routers in set "router_id"
-            connections_to_edge = [(f"10.{i}.{n}.0/32", f"{64700+n}") for n in irange(1, k/2)]
-            # Each Aggr router also connects to all Edge routers in the same Pod
-            connections = connections_to_core + connections_to_edge
-            aggr_router = net.addSwitch(name, cls = FatTreeRouter, ip = ip, asn = asn, connections = connections)
-            pod_aggr_routers[j] = aggr_router
 
-            # Link this Aggr router to Core routers
-            for n in irange(1, k/2):
-                core_router = core_routers[j*k/2 + n]
-                net.addLink(aggr_router, core_router)
-            
-        for j in irange(1, k/2): # Create Edge routers in this pod
-            ip = f"10.{i}.{j}.0/32"
-            asn = f"{64700 + j}"
-            name = f"Edge{i}_{j}"
-            connections = [(f"10.{i}.0.{n}/32", f"{64600+i}") for n in irange(1, k/2)]
-            # Each Edge router connects to all Aggr routers in the same Pod
-            edge_router = net.addSwitch(name, cls = FatTreeRouter, ip = ip, asn = asn, connections = connections)
 
-            # Link this Edge router to Aggr routers in the same pod
-            for n in irange(1, k/2):
-                net.addLink(edge_router, pod_aggr_routers[n])
+class FatTreeK(Topo):
+    def build(self, n):
+        self.n = n
+        n2 = int(n/2) # Convert float to int so that range stops complaining
 
-            # Create Hosts and link them to Edge router
-            for n in irange(1, k/2): # Host id
-                Hip = f"10.{i}.{j}.{n}/32"
-                Hname = f"Host{i}_{j}_{n}"
-                host = net.addHost(Hname, ip = Hip, defaultRoute = f"via {ip}")
-                net.addLink(host, edge_router)
+        hosts = {}
+        for i in range(n): # pod number i
+            for j in range(n2): # edge router number j
+                for k in range(n2): # host number k
+                    hosts[f'h{i}_{j}_{k}'] = self.addHost(f'h{i}_{j}_{k}', ip=f'10.{i}.{j}.{(k<<1)+1}/31', defaultRoute=f'10.{i}.{j}.{k<<1}')
 
-    return net
+        edges = {}
+        for i in range(n): # pod number i
+            for j in range(n2): # edge router number j
+                edge = self.addSwitch(f'e{i}_{j}')
+                edges[f'e{i}_{j}'] = edge
+                for k in range(n2): # host number k
+                    self.addLink(edge, hosts[f'h{i}_{j}_{k}'], intfName1=f'e{i}_{j}--h{i}_{j}_{k}')
 
-def run(k):
-    net = buildFatTree(k)
+        aggrs = {}
+        for i in range(n): # pod number i
+            for j in range(n2): # aggr router number j
+                aggr = self.addSwitch(f'a{i}_{j}')
+                aggrs[f'a{i}_{j}'] = aggr
+                for k in range(n2): # edge number k
+                    self.addLink(aggr, edges[f'e{i}_{k}'], intfName1=f'a{i}_{j}--e{i}_{k}', intfName2=f'e{i}_{k}--a{i}_{j}')
+
+        cores = {}
+        for i in range(n2): # set number i
+            for j in range(n2): # core router number j
+                core = self.addSwitch(f'c{i}_{j}')
+                cores[f'c{i}_{j}'] = core
+                for k in range(n): # aggr's pod number k
+                    self.addLink(core, aggrs[f'a{k}_{i}'], intfName1=f'c{i}_{j}--a{k}_{i}', intfName2=f'a{k}_{i}--c{i}_{j}')
+
+
+
+def main():
+    # os.system("rm -f /tmp/r*.log /tmp/r*.pid logs/*")
+    # os.system("mn -c >/dev/null 2>&1")
+    # os.system("killall -9 zebra bgpd > /dev/null 2>&1")
+    net = Mininet(topo=FatTreeK(4), switch=Router, cleanup=True, controller=None)
     net.start()
     CLI(net)
     net.stop()
+    # os.system("killall -9 zebra bgpd")
 
-if __name__ == '__main__':
-    setLogLevel( 'info' )
-    run(4)
+
+
+if __name__ == "__main__":
+    main()

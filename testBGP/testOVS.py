@@ -1,9 +1,7 @@
 from mininet.net import Mininet
-from mininet.node import Node, OVSSwitch, RemoteController
+from mininet.node import OVSSwitch
 from mininet.topo import Topo
-from mininet.link import TCLink
 from mininet.cli import CLI
-from mininet.log import setLogLevel, info
 
 class FatTree4(Topo):
     def build(self):

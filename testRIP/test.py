@@ -32,7 +32,7 @@ class Router(Switch):
         sleep(0.2)
         self.cmd("/usr/lib/frr/zebra -f ./test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > ./test_log/%s_zebra-stdout.log 2>&1" % (r, r, r), shell=True)
         self.waitOutput()
-        self.cmd("/usr/lib/frr/bgpd -f ./test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > ./test_log/%s_bgpd-stdout.log 2>&1" % (r, r, r), shell=True)
+        self.cmd("/usr/lib/frr/ripd -f ./test_conf/%s_ripd.conf -d -i /tmp/%s_ripd.pid > ./test_log/%s_ripd-stdout.log 2>&1" % (r, r, r), shell=True)
         self.waitOutput()
         self.cmd("ifconfig lo up")
         self.waitOutput()
@@ -65,12 +65,12 @@ class MyTopo( Topo ):
 def main():
     os.system("rm -f /tmp/r*.log /tmp/r*.pid logs/*")
     os.system("mn -c >/dev/null 2>&1")
-    os.system("killall -9 zebra bgpd > /dev/null 2>&1")
+    os.system("killall -9 zebra ripd > /dev/null 2>&1")
     net = Mininet(topo=MyTopo(), switch=Router, cleanup=True, controller=None)
     net.start()
     CLI(net)
     net.stop()
-    os.system("killall -9 zebra bgpd")
+    os.system("killall -9 zebra ripd")
 
 
 if __name__ == "__main__":

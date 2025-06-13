@@ -3,7 +3,6 @@
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Switch
-from mininet.log import setLogLevel
 from mininet.cli import CLI
 import os
 from time import sleep
