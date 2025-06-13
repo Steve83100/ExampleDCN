@@ -29,7 +29,7 @@ class Router(Switch):
         log('Setting up %s...' % r)
         self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
         self.waitOutput()
-        sleep(0.5)
+        sleep(0.2)
         self.cmd("/usr/lib/frr/zebra -f ./test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > ./test_log/%s_zebra-stdout.log 2>&1" % (r, r, r), shell=True)
         self.waitOutput()
         self.cmd("/usr/lib/frr/bgpd -f ./test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > ./test_log/%s_bgpd-stdout.log 2>&1" % (r, r, r), shell=True)
@@ -49,9 +49,17 @@ class MyTopo( Topo ):
         r1 = self.addSwitch('r1')
         r2 = self.addSwitch('r2')
 
-        self.addLink(h1, r1)
-        self.addLink(h2, r2)
-        self.addLink(r1, r2)
+        self.addLink(r1, r2, intfName1="r1-eth2", intfName2="r2-eth2")
+        self.addLink(h1, r1, intfName2="r1-eth1")
+        self.addLink(h2, r2, intfName2="r2-eth1")
+
+        # If no intfName was specified, Mininet will by default assign names to links in order.
+        # For example in this case, r1's interface would have been: 
+        # r1-eth1 : r2
+        # r1-eth2 : h1
+        # Since the link to r2 was established before the link to h1.
+        # But with intfName specified, we can assign names to our desired links, not worrying about order.
+
 
 
 def main():
