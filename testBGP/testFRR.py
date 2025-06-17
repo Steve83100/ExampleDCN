@@ -51,19 +51,19 @@ class MyTopo( Topo ):
         r2 = self.addSwitch('r2')
         r3 = self.addSwitch('r3')
 
-        self.addLink(r1, r2, intfName1="r1-eth2", intfName2="r2-eth2")
-        self.addLink(r1, r3, intfName1="r1-eth3", intfName2="r3-eth2")
-        self.addLink(r2, r3, intfName1="r2-eth3", intfName2="r3-eth3")
+        self.addLink(r1, r2, intfName1="r1--eth2", intfName2="r2--eth2")
+        self.addLink(r1, r3, intfName1="r1--eth3", intfName2="r3--eth2")
+        self.addLink(r2, r3, intfName1="r2--eth3", intfName2="r3--eth3")
 
-        self.addLink(h1, r1, intfName2="r1-eth1")
-        self.addLink(h2, r2, intfName2="r2-eth1")
-        self.addLink(h3, r3, intfName2="r3-eth1")
+        self.addLink(h1, r1, intfName2="r1--eth1")
+        self.addLink(h2, r2, intfName2="r2--eth1")
+        self.addLink(h3, r3, intfName2="r3--eth1")
 
         # If no intfName was specified, Mininet will by default assign names to links in order.
         # For example in this case, r1's interface would have been: 
-        # r1-eth1 : r2
-        # r1-eth2 : r3
-        # r1-eth3 : h1
+        # r1--eth1 : r2
+        # r1--eth2 : r3
+        # r1--eth3 : h1
         # Since the link to r2 was established first, then the link to r3, and finally h1.
         # But with intfName specified, we can assign names to our desired links, not worrying about order.
 

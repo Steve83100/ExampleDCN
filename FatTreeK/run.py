@@ -28,15 +28,15 @@ class Router(Switch):
     def start(self, controllers):
         r = self.name
         log('Setting up %s...' % r)
-        # self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
-        # self.waitOutput()
-        # sleep(0.1)
-        # self.cmd("/usr/lib/frr/zebra -f ./test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > ./test_log/%s_zebra-stdout.log 2>&1" % (r, r, r), shell=True)
-        # self.waitOutput()
-        # self.cmd("/usr/lib/frr/bgpd -f ./test_conf/%s_bgpd.conf -d -i /tmp/%s_bgpd.pid > ./test_log/%s_bgpd-stdout.log 2>&1" % (r, r, r), shell=True)
-        # self.waitOutput()
-        # self.cmd("ifconfig lo up")
-        # self.waitOutput()
+        self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
+        self.waitOutput()
+        sleep(0.1)
+        self.cmd("/usr/lib/frr/zebra -f ./conf/%s.conf -d -i /tmp/%s_zebra.pid > ./log/%s_zebra-stdout.log 2>&1" % (r, r, r), shell=True)
+        self.waitOutput()
+        self.cmd("/usr/lib/frr/bgpd -f ./conf/%s.conf -d -i /tmp/%s_bgpd.pid > ./log/%s_bgpd-stdout.log 2>&1" % (r, r, r), shell=True)
+        self.waitOutput()
+        self.cmd("ifconfig lo up")
+        self.waitOutput()
 
     def stop(self):
         self.deleteIntfs()
@@ -52,7 +52,7 @@ class FatTreeK(Topo):
         for i in range(n): # pod number i
             for j in range(n2): # edge router number j
                 for k in range(n2): # host number k
-                    hosts[f'h{i}_{j}_{k}'] = self.addHost(f'h{i}_{j}_{k}', ip=f'10.{i}.{j}.{(k<<1)+1}/31', defaultRoute=f'10.{i}.{j}.{k<<1}')
+                    hosts[f'h{i}_{j}_{k}'] = self.addHost(f'h{i}_{j}_{k}', ip=f'10.{i}.{j}.{(k<<2)+2}/30', defaultRoute=f'via 10.{i}.{j}.{(k<<2)+1}')
 
         edges = {}
         for i in range(n): # pod number i
@@ -81,14 +81,14 @@ class FatTreeK(Topo):
 
 
 def main():
-    # os.system("rm -f /tmp/r*.log /tmp/r*.pid logs/*")
-    # os.system("mn -c >/dev/null 2>&1")
-    # os.system("killall -9 zebra bgpd > /dev/null 2>&1")
-    net = Mininet(topo=FatTreeK(4), switch=Router, cleanup=True, controller=None)
+    os.system("rm -f /tmp/*.log /tmp/*.pid logs/*")
+    os.system("mn -c >/dev/null 2>&1")
+    os.system("killall -9 zebra bgpd > /dev/null 2>&1")
+    net = Mininet(topo=FatTreeK(6), switch=Router, cleanup=True, controller=None)
     net.start()
     CLI(net)
     net.stop()
-    # os.system("killall -9 zebra bgpd")
+    os.system("killall -9 zebra bgpd")
 
 
 
