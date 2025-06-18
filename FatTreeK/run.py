@@ -1,4 +1,4 @@
-# Construct k=4 FatTree topology, start network, and run FRR daemons on routers.
+# Construct an arbitrary k (at most 64) FatTree topology, start network, and run FRR daemons on routers.
 
 from mininet.net import Mininet
 from mininet.topo import Topo
@@ -84,7 +84,7 @@ def main():
     os.system("rm -f /tmp/*.log /tmp/*.pid logs/*")
     os.system("mn -c >/dev/null 2>&1")
     os.system("killall -9 zebra bgpd > /dev/null 2>&1")
-    net = Mininet(topo=FatTreeK(6), switch=Router, cleanup=True, controller=None)
+    net = Mininet(topo=FatTreeK(4), switch=Router, cleanup=True, controller=None)
     net.start()
     CLI(net)
     net.stop()

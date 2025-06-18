@@ -1,4 +1,4 @@
-# Generate configuration files for arbitrary k FatTree
+# Generate configuration files for arbitrary k (at most 64) FatTree
 
 from mininet.util import irange
 import os
@@ -15,7 +15,7 @@ def genFRR(n, conf_path = "./conf"):
             name = f'e{i}_{j}'
             path = conf_path + "/" + name + ".conf"
             f = open(path, "w")
-            asn = f'{64600 + i * n2 + j}' # All edge routers get a unique ASN, starting from 64600
+            asn = f'{64700 + j}' # Edge routers get ASN based only on their number in pod, starting from 64700
             router_id = f'10.{i}.{j}.0' # IP address of its subnet is used as router-id in bgp
             subnet = f'10.{i}.{j}.0/24'
             config_str = "hostname " + name + '''
@@ -59,10 +59,11 @@ router bgp {asn}
             for k in range(n2): # aggr number k
                 peerName = f'a{i}_{k}'
                 peerIP = f'10.{i}.{k+n}.{(j<<2)+1}'
-                peerASN = f'{64520 + i}'
+                peerASN = f'{64600 + i}'
                 config_str += f'''
   ! Connection to {peerName}
   neighbor {peerIP} remote-as {peerASN}
+  neighbor {peerIP} allowas-in
   neighbor {peerIP} next-hop-self
   neighbor {peerIP} timers 5 5
 '''
@@ -86,7 +87,7 @@ debug bgp neighbor-events
             name = f'a{i}_{j}'
             path = conf_path + "/" + name + ".conf"
             f = open(path, "w")
-            asn = f'{64520 + i}' # All aggr routers in the same pod get the same ASN, starting from 64520
+            asn = f'{64600 + i}' # All aggr routers in the same pod get the same ASN, starting from 64600
             router_id = f'10.{i}.{j+n}.0' # IP address of its subnet is used as router-id in bgp
             config_str = "hostname " + name + '''
 password en
@@ -126,7 +127,8 @@ router bgp {asn}
             for k in range(n2): # edge number k
                 peerName = f'e{i}_{k}'
                 peerIP = f'10.{i}.{j+n}.{(k<<2)+2}'
-                peerASN = f'{64600 + i * n2 + k}'
+                # peerASN = f'{64600 + i * n2 + k}'
+                peerASN = f'{64700 + k}'
                 config_str += f'''
   ! Connection to {peerName}
   neighbor {peerIP} remote-as {peerASN}
@@ -163,7 +165,7 @@ debug bgp neighbor-events
             name = f'c{i}_{j}'
             path = conf_path + "/" + name + ".conf"
             f = open(path, "w")
-            asn = '64512' # All aggr routers in the same pod get the same ASN, starting from 64520
+            asn = '64512' # All core routers get the same ASN 64512
             router_id = f'10.{i+n}.{j}.0' # IP address of its subnet is used as router-id in bgp
             config_str = "hostname " + name + '''
 password en
@@ -193,7 +195,7 @@ router bgp {asn}
             for k in range(n): # aggr's pod number k, remember cS_C connects to all aP_A with A = S
                 peerName = f'a{k}_{i}'
                 peerIP = f'10.{i+n}.{j}.{(k<<2)+2}'
-                peerASN = f'{64520 + k}'
+                peerASN = f'{64600 + k}'
                 config_str += f'''
   ! Connection to {peerName}
   neighbor {peerIP} remote-as {peerASN}
@@ -216,4 +218,4 @@ debug bgp neighbor-events
 
 
 os.system("rm -f ./conf/*.conf")
-genFRR(6)
+genFRR(4)
