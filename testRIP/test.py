@@ -30,9 +30,9 @@ class Router(Switch):
         self.cmd("sudo sysctl -w net.ipv4.ip_forward=1")
         self.waitOutput()
         sleep(0.2)
-        self.cmd("/usr/lib/frr/zebra -f ./test_conf/%s_zebra.conf -d -i /tmp/%s_zebra.pid > ./test_log/%s_zebra-stdout.log 2>&1" % (r, r, r), shell=True)
+        self.cmd("/usr/lib/frr/zebra -f ./test_conf/%s.conf -d -i /tmp/%s_zebra.pid > ./test_log/%s_zebra-stdout.log 2>&1" % (r, r, r), shell=True)
         self.waitOutput()
-        self.cmd("/usr/lib/frr/ripd -f ./test_conf/%s_ripd.conf -d -i /tmp/%s_ripd.pid > ./test_log/%s_ripd-stdout.log 2>&1" % (r, r, r), shell=True)
+        self.cmd("/usr/lib/frr/ripd -f ./test_conf/%s.conf -d -i /tmp/%s_ripd.pid > ./test_log/%s_ripd-stdout.log 2>&1" % (r, r, r), shell=True)
         self.waitOutput()
         self.cmd("ifconfig lo up")
         self.waitOutput()
@@ -49,9 +49,9 @@ class MyTopo( Topo ):
         r1 = self.addSwitch('r1')
         r2 = self.addSwitch('r2')
 
-        self.addLink(r1, r2, intfName1="r1-eth2", intfName2="r2-eth2")
-        self.addLink(h1, r1, intfName2="r1-eth1")
-        self.addLink(h2, r2, intfName2="r2-eth1")
+        self.addLink(r1, r2, intfName1="r1-r2", intfName2="r2-r1")
+        self.addLink(h1, r1, intfName2="r1-h1")
+        self.addLink(h2, r2, intfName2="r2-h2")
 
         # If no intfName was specified, Mininet will by default assign names to links in order.
         # For example in this case, r1's interface would have been: 
@@ -63,7 +63,7 @@ class MyTopo( Topo ):
 
 
 def main():
-    os.system("rm -f /tmp/r*.log /tmp/r*.pid logs/*")
+    os.system("rm -f /tmp/r*.log /tmp/r*.pid test_log/*")
     os.system("mn -c >/dev/null 2>&1")
     os.system("killall -9 zebra ripd > /dev/null 2>&1")
     net = Mininet(topo=MyTopo(), switch=Router, cleanup=True, controller=None)
