@@ -70,7 +70,7 @@ class MyTopo( Topo ):
 
 
 def main():
-    os.system("rm -f /tmp/r*.log /tmp/r*.pid logs/*")
+    os.system("rm -f /tmp/r*.log /tmp/r*.pid test_log/*")
     os.system("mn -c >/dev/null 2>&1")
     os.system("killall -9 zebra bgpd > /dev/null 2>&1")
     net = Mininet(topo=MyTopo(), switch=Router, cleanup=True, controller=None)
