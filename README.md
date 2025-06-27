@@ -10,11 +10,13 @@ import Mininet VM from .ovf file
 settings - NAT - Port Forwarding - 2222->22
 
 #### Chsrc
+[Instructions](https://github.com/RubyMetric/chsrc)
+
 APT update and install Curl
 
 Curl install Chsrc
 
-change source of Ubuntu (apt)
+change source of Ubuntu (apt) and Python
 
 #### Git
 ssh-keygen
@@ -49,18 +51,18 @@ SDN slides, SDN manual, Python API source code
 
 
 ## FRR Setup Notes
-install with APT (no need to add "deb.frrouting.org" source)
+simply apt install (no need to add "deb.frrouting.org" source)
 
 ### !! Learning FRR
 Quagga examples, FRR topotests, Sigcomm BGP hijacking
 
 
 ## Batfish Setup Notes
-### Docker (WSL is enough)
-follow official setup
+### Docker (WSL is OK)
+follow official setup, but change source at "echo" step.
+[Instructions](https://mirrors.tuna.tsinghua.edu.cn/help/docker-ce/)
 
-at "echo" step, change source
+change docker registry source; Chsrc's source is currently unavailable.
+[Instructions](https://blog.csdn.net/c12312303/article/details/146428465)
 
-change docker registry source
-
-manually start dockerd
+if using WSL, manually start/restart dockerd
